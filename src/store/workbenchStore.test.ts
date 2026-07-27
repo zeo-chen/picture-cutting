@@ -227,7 +227,7 @@ describe("workbenchStore", () => {
     expect(useWorkbenchStore.getState().layouts.a.vertical).toHaveLength(1);
   });
 
-  it("rejects add-line IDs already retained by a moved line", () => {
+  it("adds at a vacated coordinate with a deterministic unique ID", () => {
     useWorkbenchStore.getState().setLines("a", {
       vertical: [0.25],
       horizontal: [],
@@ -238,7 +238,75 @@ describe("workbenchStore", () => {
     useWorkbenchStore.getState().addLine("a", "vertical", 0.25);
 
     expect(useWorkbenchStore.getState().layouts.a.vertical).toEqual([
+      { id: "vertical-0.25000000-2", position: 0.25, locked: false },
       { id: lineId, position: 0.5, locked: false },
+    ]);
+  });
+
+  it("increments the deterministic suffix when a coordinate is vacated again", () => {
+    useWorkbenchStore.getState().setLines("a", {
+      vertical: [0.25],
+      horizontal: [],
+    });
+    useWorkbenchStore
+      .getState()
+      .moveLine("a", "vertical", "vertical-0.25000000", 0.5);
+    useWorkbenchStore.getState().addLine("a", "vertical", 0.25);
+    useWorkbenchStore
+      .getState()
+      .moveLine("a", "vertical", "vertical-0.25000000-2", 0.75);
+
+    useWorkbenchStore.getState().addLine("a", "vertical", 0.25);
+
+    expect(useWorkbenchStore.getState().layouts.a.vertical.map(({ id }) => id)).toEqual([
+      "vertical-0.25000000-3",
+      "vertical-0.25000000",
+      "vertical-0.25000000-2",
+    ]);
+  });
+
+  it("moves into a vacated coordinate but still rejects current-position collisions", () => {
+    useWorkbenchStore.getState().setLines("a", {
+      vertical: [0.25, 0.5],
+      horizontal: [],
+    });
+    const firstId = useWorkbenchStore.getState().layouts.a.vertical[0].id;
+    const secondId = useWorkbenchStore.getState().layouts.a.vertical[1].id;
+    useWorkbenchStore.getState().moveLine("a", "vertical", firstId, 0.75);
+
+    useWorkbenchStore.getState().moveLine("a", "vertical", secondId, 0.25);
+    expect(
+      useWorkbenchStore
+        .getState()
+        .layouts.a.vertical.find(({ id }) => id === secondId)?.position,
+    ).toBe(0.25);
+
+    useWorkbenchStore
+      .getState()
+      .moveLine("a", "vertical", firstId, 0.250000001);
+    expect(
+      useWorkbenchStore
+        .getState()
+        .layouts.a.vertical.find(({ id }) => id === firstId)?.position,
+    ).toBe(0.75);
+  });
+
+  it("allocates a unique ID when setLines retains a historical base ID", () => {
+    useWorkbenchStore.getState().setLines("a", {
+      vertical: [0.25],
+      horizontal: [],
+    });
+    const lineId = useWorkbenchStore.getState().layouts.a.vertical[0].id;
+    useWorkbenchStore.getState().moveLine("a", "vertical", lineId, 0.2);
+
+    useWorkbenchStore.getState().setLines("a", {
+      vertical: [0.2, 0.25],
+      horizontal: [],
+    });
+
+    expect(useWorkbenchStore.getState().layouts.a.vertical).toEqual([
+      { id: lineId, position: 0.2, locked: false },
+      { id: "vertical-0.25000000-2", position: 0.25, locked: false },
     ]);
   });
 

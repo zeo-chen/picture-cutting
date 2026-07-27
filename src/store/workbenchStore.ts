@@ -41,6 +41,23 @@ const defaultExportSettings: ExportSettings = {
 const canonicalLineId = (axis: LineAxis, position: number) =>
   `${axis}-${position.toFixed(8)}`;
 
+const allocateLineId = (
+  axis: LineAxis,
+  position: number,
+  existingIds: Set<string>,
+) => {
+  const baseId = canonicalLineId(axis, position);
+  if (!existingIds.has(baseId)) {
+    return baseId;
+  }
+
+  let suffix = 2;
+  while (existingIds.has(`${baseId}-${suffix}`)) {
+    suffix += 1;
+  }
+  return `${baseId}-${suffix}`;
+};
+
 const normalize = (axis: LineAxis, values: number[]) => {
   const positionsById = new Map<string, number>();
 
@@ -115,13 +132,14 @@ export const useWorkbenchStore = create<WorkbenchState>((set) => ({
             existingLines.find(
               (line) => line.id === desiredId && !usedLines.has(line),
             );
-          const nextLine = existing
-            ? { ...existing, position }
-            : createLine(axis, position);
+          const nextLine =
+            existing && !usedIds.has(existing.id)
+              ? { ...existing, position }
+              : {
+                  ...createLine(axis, position),
+                  id: allocateLineId(axis, position, usedIds),
+                };
 
-          if (usedIds.has(nextLine.id)) {
-            return [];
-          }
           if (existing) {
             usedLines.add(existing);
           }
@@ -154,8 +172,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set) => ({
         layout[axis].some(
           (candidate) =>
             candidate.id !== lineId &&
-            (candidate.id === targetId ||
-              canonicalLineId(axis, candidate.position) === targetId),
+            canonicalLineId(axis, candidate.position) === targetId,
         )
       ) {
         return state;
@@ -178,20 +195,22 @@ export const useWorkbenchStore = create<WorkbenchState>((set) => ({
   addLine: (taskId, axis, position) =>
     set((state) => {
       const layout = state.layouts[taskId] ?? { vertical: [], horizontal: [] };
-      const id = canonicalLineId(axis, position);
+      const positionId = canonicalLineId(axis, position);
       if (
         !(position > 0 && position < 1) ||
         layout[axis].some(
-          (line) =>
-            line.id === id || canonicalLineId(axis, line.position) === id,
+          (line) => canonicalLineId(axis, line.position) === positionId,
         )
       ) {
         return state;
       }
 
-      const lines = [...layout[axis], createLine(axis, position)].sort(
-        (a, b) => a.position - b.position,
-      );
+      const existingIds = new Set(layout[axis].map(({ id }) => id));
+      const line = {
+        ...createLine(axis, position),
+        id: allocateLineId(axis, position, existingIds),
+      };
+      const lines = [...layout[axis], line].sort((a, b) => a.position - b.position);
 
       return {
         layouts: {
