@@ -1,0 +1,53 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family:
+    Inter, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  color: #1f2937;
+  background: #111827;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  min-width: 1024px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.workbench {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 300px;
+  min-height: 100vh;
+}
+
+.panel {
+  padding: 24px;
+  background: #f8fafc;
+}
+
+.panel--left {
+  border-right: 1px solid #e2e8f0;
+}
+
+.panel--right {
+  border-left: 1px solid #e2e8f0;
+}
+
+.canvas-panel {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #cbd5e1;
+  background: #111827;
+}
