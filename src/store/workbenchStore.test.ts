@@ -310,6 +310,32 @@ describe("workbenchStore", () => {
     ]);
   });
 
+  it("prefers canonical current occupancy before historical ID matching", () => {
+    useWorkbenchStore.getState().setLines("a", {
+      vertical: [0.25],
+      horizontal: [],
+    });
+    const originalId = useWorkbenchStore.getState().layouts.a.vertical[0].id;
+    useWorkbenchStore
+      .getState()
+      .moveLine("a", "vertical", originalId, 0.5);
+    useWorkbenchStore.getState().addLine("a", "vertical", 0.25);
+    const replacementId = useWorkbenchStore.getState().layouts.a.vertical[0].id;
+    useWorkbenchStore
+      .getState()
+      .toggleLineLock("a", "vertical", replacementId);
+
+    useWorkbenchStore.getState().setLines("a", {
+      vertical: [0.250000001, 0.5],
+      horizontal: [],
+    });
+
+    expect(useWorkbenchStore.getState().layouts.a.vertical).toEqual([
+      { id: replacementId, position: 0.250000001, locked: true },
+      { id: originalId, position: 0.5, locked: false },
+    ]);
+  });
+
   it("removes an unlocked line", () => {
     useWorkbenchStore.getState().setLines("a", {
       vertical: [0.25, 0.75],

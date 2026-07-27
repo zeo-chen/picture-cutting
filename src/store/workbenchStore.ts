@@ -130,6 +130,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set) => ({
               (line) => line.position === position && !usedLines.has(line),
             ) ??
             existingLines.find(
+              (line) =>
+                canonicalLineId(axis, line.position) === desiredId &&
+                !usedLines.has(line),
+            ) ??
+            existingLines.find(
               (line) => line.id === desiredId && !usedLines.has(line),
             );
           const nextLine =
