@@ -29,6 +29,7 @@ export interface WorkbenchState {
   removeLine: (taskId: string, axis: LineAxis, lineId: string) => void;
   toggleLineLock: (taskId: string, axis: LineAxis, lineId: string) => void;
   setTaskStatus: (taskId: string, status: TaskStatus, error?: string) => void;
+  setTaskPreview: (taskId: string, previewUrl?: string) => void;
   reset: () => void;
 }
 
@@ -270,6 +271,13 @@ export const useWorkbenchStore = create<WorkbenchState>((set) => ({
         task.id === taskId
           ? { ...task, status, error: status === "failed" ? error : undefined }
           : task,
+      ),
+    })),
+
+  setTaskPreview: (taskId, previewUrl) =>
+    set((state) => ({
+      tasks: state.tasks.map((task) =>
+        task.id === taskId ? { ...task, previewUrl } : task,
       ),
     })),
 
