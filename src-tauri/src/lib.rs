@@ -1,6 +1,8 @@
 pub mod domain;
+pub mod export;
 pub mod geometry;
 pub mod image_probe;
+pub mod naming;
 pub mod preview;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
