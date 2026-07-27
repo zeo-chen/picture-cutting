@@ -11,5 +11,6 @@ export default defineConfig({
   envPrefix: ["VITE_", "TAURI_ENV_*"],
   test: {
     environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
   },
 });
