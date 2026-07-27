@@ -21,9 +21,18 @@ pub fn solid_image(directory: &Path, name: &str, width: u32, height: u32) -> Pat
 }
 
 pub fn oriented_jpeg(directory: &Path, orientation: u16) -> PathBuf {
+    oriented_jpeg_with_size(directory, orientation, 40, 20)
+}
+
+pub fn oriented_jpeg_with_size(
+    directory: &Path,
+    orientation: u16,
+    width: u32,
+    height: u32,
+) -> PathBuf {
     let path = directory.join(format!("orientation-{orientation}.jpg"));
-    let image = ImageBuffer::from_fn(40, 20, |x, y| {
-        let color = match (x < 20, y < 10) {
+    let image = ImageBuffer::from_fn(width, height, |x, y| {
+        let color = match (x < width / 2, y < height / 2) {
             (true, true) => [240_u8, 20, 20],
             (false, true) => [20, 240, 20],
             (true, false) => [20, 20, 240],
@@ -49,6 +58,26 @@ pub fn oriented_jpeg(directory: &Path, orientation: u16) -> PathBuf {
     encoded.extend_from_slice(&[0xff, 0xe1]);
     encoded.extend_from_slice(&segment_length.to_be_bytes());
     encoded.extend_from_slice(&exif_payload);
+    encoded.extend_from_slice(&jpeg[2..]);
+    fs::write(&path, encoded).unwrap();
+    path
+}
+
+pub fn malformed_exif_jpeg(directory: &Path) -> PathBuf {
+    let path = directory.join("malformed-exif.jpg");
+    let image = ImageBuffer::from_pixel(40, 20, Rgb([30_u8, 80, 120]));
+    let mut jpeg = Vec::new();
+    JpegEncoder::new_with_quality(&mut jpeg, 100)
+        .encode_image(&image)
+        .unwrap();
+
+    let exif_payload = b"Exif\0\0invalid-tiff";
+    let segment_length = u16::try_from(exif_payload.len() + 2).unwrap();
+    let mut encoded = Vec::with_capacity(jpeg.len() + exif_payload.len() + 4);
+    encoded.extend_from_slice(&jpeg[..2]);
+    encoded.extend_from_slice(&[0xff, 0xe1]);
+    encoded.extend_from_slice(&segment_length.to_be_bytes());
+    encoded.extend_from_slice(exif_payload);
     encoded.extend_from_slice(&jpeg[2..]);
     fs::write(&path, encoded).unwrap();
     path

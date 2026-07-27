@@ -1,6 +1,9 @@
 mod common;
 
-use common::{assert_color_near, oriented_jpeg, patterned_png, solid_image};
+use common::{
+    assert_color_near, malformed_exif_jpeg, oriented_jpeg, oriented_jpeg_with_size, patterned_png,
+    solid_image,
+};
 use picture_cutting_lib::preview::{generate_preview, PreviewError};
 use std::fs;
 
@@ -28,6 +31,47 @@ fn scales_large_image_to_max_edge_and_preserves_aspect_ratio() {
     let preview = generate_preview(&path, 1600).unwrap();
 
     assert_eq!((preview.width, preview.height), (1600, 1200));
+}
+
+#[test]
+fn scales_large_oriented_image_before_applying_display_rotation() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = oriented_jpeg_with_size(directory.path(), 6, 4000, 3000);
+
+    let preview = generate_preview(&path, 1600).unwrap();
+
+    assert_eq!((preview.width, preview.height), (1200, 1600));
+    assert_eq!(preview.rgba.len(), 1200 * 1600 * 4);
+}
+
+#[test]
+fn rejects_unreasonable_source_dimensions_before_decode() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = solid_image(directory.path(), "too-wide.png", 20_000, 1);
+
+    let error = generate_preview(&path, 1600).unwrap_err();
+
+    assert!(
+        matches!(
+            &error,
+            PreviewError::SourceTooLarge {
+                width: 20_000,
+                height: 1
+            }
+        ),
+        "unexpected error: {error:?}"
+    );
+    assert!(error.to_string().contains("too large for a safe preview"));
+}
+
+#[test]
+fn ignores_malformed_optional_exif_when_generating_preview() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = malformed_exif_jpeg(directory.path());
+
+    let preview = generate_preview(&path, 256).unwrap();
+
+    assert_eq!((preview.width, preview.height), (40, 20));
 }
 
 #[test]

@@ -1,6 +1,6 @@
 mod common;
 
-use common::{oriented_jpeg, patterned_png, solid_image};
+use common::{malformed_exif_jpeg, oriented_jpeg, patterned_png, solid_image};
 use picture_cutting_lib::image_probe::{probe_image, ProbeError};
 use std::fs;
 
@@ -67,4 +67,15 @@ fn reports_post_orientation_dimensions_for_exif_jpeg() {
 
     assert_eq!((info.width, info.height), (20, 40));
     assert!(info.orientation_applied);
+}
+
+#[test]
+fn ignores_malformed_optional_exif_in_an_otherwise_valid_jpeg() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = malformed_exif_jpeg(directory.path());
+
+    let info = probe_image(&path).unwrap();
+
+    assert_eq!((info.width, info.height), (40, 20));
+    assert!(!info.orientation_applied);
 }

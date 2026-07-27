@@ -16,7 +16,7 @@ pub enum ExifOrientationError {
     #[error("could not read JPEG EXIF orientation: {source}")]
     Read {
         #[source]
-        source: exif::Error,
+        source: io::Error,
     },
 }
 
@@ -83,8 +83,8 @@ pub fn read_exif_orientation(path: &Path) -> Result<Option<u16>, ExifOrientation
     let mut reader = BufReader::new(file);
     let exif = match exif::Reader::new().read_from_container(&mut reader) {
         Ok(exif) => exif,
-        Err(exif::Error::NotFound(_)) => return Ok(None),
-        Err(source) => return Err(ExifOrientationError::Read { source }),
+        Err(exif::Error::Io(source)) => return Err(ExifOrientationError::Read { source }),
+        Err(_) => return Ok(None),
     };
 
     Ok(exif
